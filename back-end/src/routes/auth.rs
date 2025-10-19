@@ -3,7 +3,7 @@ use crate::models::user::LoginData;
 
 #[post("/login")]
 pub async fn login(info: web::Json<LoginData>) -> impl Responder {
-    if info.user_name == "admin" && info.pass_word == "1234" {
+    if info.username == "admin" && info.password == "1234" {
         HttpResponse::Ok().json({
             serde_json::json!({
                 "status": "success",
