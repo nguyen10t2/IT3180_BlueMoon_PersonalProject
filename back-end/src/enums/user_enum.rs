@@ -11,3 +11,10 @@ pub enum UserRole {
     QuanLy,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, Type)]
+pub enum UserStatus {
+    #[sqlx(rename = "Hoạt động")]
+    Stay,
+    #[sqlx(rename = "Nghỉ việc")]
+    Resign,
+}
