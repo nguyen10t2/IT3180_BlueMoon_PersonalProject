@@ -14,7 +14,7 @@ pub enum UserRole {
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 pub enum UserStatus {
     #[sqlx(rename = "Hoạt động")]
-    Stay,
+    HoatDong,
     #[sqlx(rename = "Nghỉ việc")]
-    Resign,
+    NghiViec,
 }
