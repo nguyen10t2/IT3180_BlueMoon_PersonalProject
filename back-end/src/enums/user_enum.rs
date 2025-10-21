@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::Type;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[sqlx(type_name = "user_role")]
 pub enum UserRole {
     #[sqlx(rename = "Cư dân")]
     CuDan,
@@ -12,6 +13,7 @@ pub enum UserRole {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[sqlx(type_name = "user_status")]
 pub enum UserStatus {
     #[sqlx(rename = "Hoạt động")]
     HoatDong,

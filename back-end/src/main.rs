@@ -5,15 +5,10 @@ mod handlers;
 mod db;
 
 
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 
 use routes::user_routes;
 use db::init_db;
-
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello World")
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

@@ -15,7 +15,7 @@ pub struct Residents {
     pub phone_number        : String,
     pub occupation          : String,
 
-    #[serde[default = "default_residency_status"]]
+    #[serde(default = "default_residency_status")]
     pub residency_status    : ResidencyStauts,
 
     pub residency_date      : DateTime<Utc>,
