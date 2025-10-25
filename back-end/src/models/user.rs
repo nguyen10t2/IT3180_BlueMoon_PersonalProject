@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
-use crate::enums::user_enum::{UserRole, UserStatus};
+use crate::enums::user_enum::UserStatus;
+use crate::enums::user_enum::UserRole;
 
 #[derive(Deserialize, Serialize, FromRow, Debug)]
 pub struct User {
@@ -16,6 +17,7 @@ pub struct User {
     pub email           : Option<String>,
     #[serde(default)]
     pub phone_number    : Option<String>,
+    #[serde(default)]
     pub role            : UserRole,
     #[serde(default)]
     pub status          : UserStatus,
@@ -29,17 +31,12 @@ pub struct User {
 pub struct CreateUser {
     pub username        : String,
     pub password        : String,
-    pub role            : Option<UserRole>,
+    #[serde(default)]
+    pub role            : UserRole,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AuthResponse {
-    pub token: String,
-    pub role: UserRole,
 }

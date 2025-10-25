@@ -11,6 +11,7 @@ use crate::models::user::CreateUser;
 pub async fn register_user(db: Data<PgPool>, user_info: web::Json<CreateUser>) -> impl Responder {
     let username = user_info.username.trim();
     let password = user_info.password.trim();
+    let role = &user_info.role;
 
     if username.is_empty() || password.is_empty() {
         return HttpResponse::BadRequest().body("Username and password cannot be empty");
@@ -36,10 +37,11 @@ pub async fn register_user(db: Data<PgPool>, user_info: web::Json<CreateUser>) -
     let hashed_password = hash_password(password.to_string());
 
     let insert_result = sqlx::query(
-        "INSERT INTO users (username, password_hash) VALUES ($1, $2)"
+        "INSERT INTO create_users (username, password_hash, role) VALUES ($1, $2, $3)"
     )
     .bind(username)
     .bind(&hashed_password)
+    .bind(role)
     .execute(db.get_ref())
     .await;
     match insert_result {
