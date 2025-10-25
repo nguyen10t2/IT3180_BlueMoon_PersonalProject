@@ -3,6 +3,7 @@ mod models;
 mod enums;
 mod handlers;
 mod db;
+mod services;
 
 
 use actix_web::{web, App, HttpServer};
