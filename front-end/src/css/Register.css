@@ -1,0 +1,30 @@
+.register-container{
+    background-color: #EBEFFF;
+    margin-left: auto;
+    margin-right: auto;
+    width: 450px;
+    height: 650px;
+    border-radius: 10%;
+        box-shadow: 0 12px 28px 0 rgba(0, 0, 0, 0.2), 0 2px 4px 0 rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+
+}
+
+.register-container .Password input, .fullname input, .userName input
+, .Email input, .ConfirmPassword input{
+    display: block;
+    padding: 5px 15px;
+    width: 330px;
+    outline: none;
+    border-radius: 50px;
+    border: 2px solid #656ED3;
+    background: rgba(175, 179, 255, 0.00);
+    font-size: 16px;
+    color: #444;
+}
+.message{
+    margin-top: 2px;
+    margin-left: 2px;
+    margin-bottom: 3px;
+    color: #FF6B6B;
+    text-align: center;
+}

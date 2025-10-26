@@ -7,6 +7,7 @@ mod services;
 
 
 use actix_web::{web, App, HttpServer};
+use actix_cors::Cors;
 
 use routes::user_routes;
 use db::init_db;
@@ -21,6 +22,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Cors::permissive())
             .app_data(web::Data::new(pool.clone()))
             .configure(user_routes::config)
             .configure(auth_routes::config)

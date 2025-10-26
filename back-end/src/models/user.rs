@@ -8,6 +8,7 @@ use crate::enums::user_enum::UserRole;
 pub struct User {
     pub username        : String,
     pub password        : String,
+    pub fullname        : String,
     #[serde(default)]
     pub email           : Option<String>,
     #[serde(default)]
@@ -16,6 +17,6 @@ pub struct User {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
-    pub username: String,
-    pub password: String,
+    pub username        : String,
+    pub password        : String,
 }
