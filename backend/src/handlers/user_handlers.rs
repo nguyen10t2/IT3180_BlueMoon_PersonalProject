@@ -10,8 +10,9 @@ use serde_json::json;
 
 #[get("")]
 pub async fn get_all_users(db: Data<PgPool>) -> impl Responder {
-    let result = sqlx::query_as::<_, User>
-    ("SELECT * FROM users")
+    let result = sqlx::query_as::<_, User>(
+        "SELECT * FROM users"
+    )
         .fetch_all(db.get_ref())
         .await;
     match result {
@@ -25,7 +26,9 @@ pub async fn get_all_users(db: Data<PgPool>) -> impl Responder {
 pub async fn get_user_by_id(db: Data<PgPool>, path: Path<i32>) -> impl Responder {
     let user_id = path.into_inner();
 
-    let result = sqlx::query_as::<_, User>("SELECT * FROM users WHERE user_id = $1")
+    let result = sqlx::query_as::<_, User>(
+        "SELECT * FROM users WHERE user_id = $1"
+    )
         .bind(user_id)
         .fetch_optional(db.get_ref())
         .await;

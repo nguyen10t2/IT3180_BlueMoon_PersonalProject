@@ -18,9 +18,8 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<User>) -> impl Resp
         return HttpResponse::BadRequest().body("Username, password, and fullname cannot be empty");
     }
 
-    let existing_user = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)"
-    )
+    let existing_user = sqlx::query_scalar::<_, bool>
+    ("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)")
     .bind(username)
     .fetch_one(db.get_ref())
     .await;
@@ -39,7 +38,7 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<User>) -> impl Resp
 
     let insert_result = sqlx::query(
         "INSERT INTO users (username, fullname, email, password_hash, role, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6)"
+        VALUES ($1, $2, $3, $4, $5, $6)"
     )
     .bind(username)
     .bind(fullname)
@@ -73,8 +72,11 @@ pub async fn login_user(db:  Data<PgPool>, user_info: Json<LoginRequest>) -> imp
     match get_password_result {
         Ok(stored_hashed_password) => {
             match crate::services::auth_services::verify_password(stored_hashed_password, password.to_string()) {
-                Ok(_) => HttpResponse::Ok().body("Login successful"),
-                Err(_) => HttpResponse::Unauthorized().body("Invalid username or password"),
+                Ok(_) => {
+                    println!("User login successful");
+                    return HttpResponse::Ok().body("Login successful");
+                }
+                Err(_) => HttpResponse::Unauthorized().body("Invalid username or password")
             }
         }
         Err(_) => {
