@@ -6,7 +6,7 @@ mod db;
 mod services;
 
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{web::Data, App, HttpServer};
 use actix_cors::Cors;
 
 use routes::user_routes;
@@ -17,6 +17,8 @@ use crate::routes::auth_routes;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
+
+    let secret_key = std::env::var("SECRET_KEY").expect("SECRET_KEY must be set in .env file");
     println!("Server chạy tại http://localhost:8080");
 
     let pool = init_db().await;
@@ -24,7 +26,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
-            .app_data(web::Data::new(pool.clone()))
+            .app_data(Data::new(pool.clone()))
+            .app_data(Data::new(secret_key.clone()))
             .configure(user_routes::config)
             .configure(auth_routes::config)
     })

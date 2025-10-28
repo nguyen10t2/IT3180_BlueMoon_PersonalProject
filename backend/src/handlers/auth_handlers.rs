@@ -1,5 +1,5 @@
 use actix_web::{
-    post, web::{Json, Data}, HttpResponse, Responder, HttpRequest
+    get, put, post, web::{Json, Data}, HttpResponse, Responder, HttpRequest
 };
 use sqlx::{PgPool, Error::RowNotFound};
 
@@ -8,7 +8,10 @@ use crate::services::auth_services::{hash_password, verify_password, generate_jw
 use crate::models::user::CreateUser;
 
 #[post("/register")]
-pub async fn register_user(db: Data<PgPool>, user_info: Json<CreateUser>) -> impl Responder {
+pub async fn register_user(
+    db: Data<PgPool>,
+    user_info: Json<CreateUser>
+) -> impl Responder {
     let username = user_info.username.trim();
     let password = user_info.password_hash.trim();
     let fullname = user_info.fullname.trim();
@@ -41,7 +44,15 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<CreateUser>) -> imp
         _ => {}
     }
 
-    let hashed_password = hash_password(password.to_string());
+    let hashed_password = match hash_password(password.to_string()) {
+        Ok(hash) => hash,
+        Err(err) => {
+            eprintln!("Password hashing error: {}", err);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to hash password"
+            }));
+        }
+    };
     let insert_result = sqlx::query(
         "INSERT INTO users (username, fullname, email, password_hash, role, created_at, resident_id)
         VALUES ($1, $2, $3, $4, $5, NOW(), $6)"
@@ -49,7 +60,7 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<CreateUser>) -> imp
     .bind(username)
     .bind(fullname)
     .bind(email)
-    .bind(hashed_password.unwrap())
+    .bind(hashed_password)
     .bind(role)
     .bind(user_info.resident_id)
     .execute(db.get_ref())
@@ -69,7 +80,11 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<CreateUser>) -> imp
 }
 
 #[post("/login")]
-pub async fn login_user(db: Data<PgPool>, user_info: Json<LoginRequest>) -> impl Responder {
+pub async fn login_user(
+    db: Data<PgPool>,
+    secret_key: Data<String>,
+    user_info: Json<LoginRequest>
+) -> impl Responder {
     let username = user_info.username.trim();
     let password = user_info.password_hash.trim();
 
@@ -89,10 +104,7 @@ pub async fn login_user(db: Data<PgPool>, user_info: Json<LoginRequest>) -> impl
                 }));
             }
 
-            let secret_key = std::env::var("SECRET_KEY")
-                .expect("SECRET_KEY must be set in .env file");
-
-            match generate_jwt(username.to_string(), &secret_key, 86400) {
+            match generate_jwt(username.to_string(), secret_key.get_ref(), 86400) {
                 Ok(token) => {
                     println!("User '{}' logged in successfully", username);
                     HttpResponse::Ok().json(LoginResponse {
@@ -123,7 +135,10 @@ pub async fn login_user(db: Data<PgPool>, user_info: Json<LoginRequest>) -> impl
 }
 
 #[post("/logout")]
-pub async fn logout_user(req: HttpRequest) -> impl Responder {
+pub async fn logout_user(
+    req: HttpRequest,
+    secret_key: Data<String>
+) -> impl Responder {
     let token = req
         .headers()
         .get("Authorization")
@@ -133,15 +148,120 @@ pub async fn logout_user(req: HttpRequest) -> impl Responder {
     // token "Authorization: Bearer <token>"
     match token {
         Some(token) => {
-            let secret_key = std::env::var("SECRET_KEY")
-                .expect("SECRET_KEY must be set in .env file");
-
-            match verify_token(&token, &secret_key) {
+            match verify_token(&token, secret_key.get_ref()) {
                 Ok(claims) => {
                     println!("User '{}' logged out successfully", claims.sub);
                     HttpResponse::Ok().json(serde_json::json!({
                         "message": "Logout successful"
                     }))
+                }
+                Err(_) => {
+                    HttpResponse::Unauthorized().json(serde_json::json!({
+                        "error": "Invalid token"
+                    }))
+                }
+            }
+        }
+        None => {
+            HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Authorization token is missing"
+            }))
+        }
+    }
+}
+
+#[get("/me")]
+pub async fn get_current_user(
+    req: HttpRequest,
+    secret_key: Data<String>
+) -> impl Responder {
+    let token = req
+        .headers()
+        .get("Authorization")
+        .and_then(|header_value| header_value.to_str().ok())
+        .and_then(|header_value| header_value.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+
+    match token {
+        Some(token) => {
+            match verify_token(&token, secret_key.get_ref()) {
+                Ok(claims) => {
+                    HttpResponse::Ok().json(serde_json::json!({
+                        "username": claims.sub,
+                        "exp": claims.exp,
+                        "issued_at": claims.iat,
+                    }))
+                }
+                Err(_) => {
+                    HttpResponse::Unauthorized().json(serde_json::json!({
+                        "error": "Invalid token"
+                    }))
+                }
+            }
+        }
+        None => HttpResponse::Unauthorized().json(serde_json::json!({
+            "error": "Authorization token is missing"
+        })),
+    }
+}
+
+#[put("/change-password")]
+pub async fn change_password(
+    db: Data<PgPool>, 
+    req: HttpRequest,
+    secret_key: Data<String>,
+    password_info: Json<serde_json::Value>
+) -> impl Responder {
+    let token = req
+        .headers()
+        .get("Authorization")
+        .and_then(|header_value| header_value.to_str().ok())
+        .and_then(|header_value| header_value.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+
+    let new_password = password_info.get("new_password")
+        .and_then(|v| v.as_str());
+    if new_password.is_none() || new_password.unwrap().trim().is_empty() {
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "New password cannot be empty"
+        }));
+    }
+    match token {
+        Some(token) => {
+            match verify_token(&token, secret_key.get_ref()) {
+                Ok(claims) => {
+                    let hashed_password = match hash_password(new_password.unwrap().to_string()) {
+                        Ok(hash) => Ok(hash),
+                        Err(err) => Err(err),
+                    };
+                    match hashed_password {
+                        Ok(hashed) => {
+                            let update = sqlx::query(
+                                "UPDATE users SET password_hash = $1 WHERE username = $2"
+                            )
+                                .bind(hashed)
+                                .bind(claims.sub)
+                                .execute(db.get_ref())
+                                .await;
+                            match update {
+                                Ok(_) => HttpResponse::Ok().json(serde_json::json!({
+                                    "message": "Password changed successfully"
+                                })),
+                                Err(err) => {
+                                    eprintln!("Database error during password change: {}", err);
+                                    HttpResponse::InternalServerError().json(serde_json::json!({
+                                        "error": "Failed to change password"
+                                    }))
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("Password hashing error: {}", err);
+                            HttpResponse::InternalServerError().json(serde_json::json!({
+                                "error": "Failed to hash new password"
+                            }))
+                        }
+                    }
                 }
                 Err(_) => {
                     HttpResponse::Unauthorized().json(serde_json::json!({

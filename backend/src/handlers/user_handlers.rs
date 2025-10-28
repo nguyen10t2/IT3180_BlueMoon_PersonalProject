@@ -102,3 +102,4 @@ pub async fn active_user(db: Data<PgPool>, path: Path<i32>) -> impl Responder {
         Err(err) => HttpResponse::InternalServerError().json(json!({"error": err.to_string()}))
     }
 }
+
