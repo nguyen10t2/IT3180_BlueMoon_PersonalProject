@@ -35,7 +35,7 @@ export default function Citizens() {
                     username: userName,
                     fullname: fullname,
                     email: email,
-                    password: password,
+                    password_hash: password,
                     role: role
                 })
             });
@@ -99,18 +99,18 @@ export default function Citizens() {
                     </label>
                     <label className="Role">
                         <strong>Role</strong>
-                        <input name="role" type="radio" value="user1"
+                        <input name="role" type="radio" value="admin"
                             onChange={(e) => setRole(e.target.value)}
                         />
-                        <label>Tổ trưởng/Tổ phó</label><br />
-                        <input name="role" type="radio" value="user2"
+                        <label>Admin Deverloper</label><br />
+                        <input name="role" type="radio" value="manager"
                             onChange={(e) => setRole(e.target.value)}
                         />
-                        <label>Quản lý hộ khẩu, nhân khẩu</label><br />
-                        <input name="role" type="radio" value="user3"
+                        <label>Ban quản lý</label><br />
+                        <input name="role" type="radio" value="resident"
                             onChange={(e) => setRole(e.target.value)}
                         />
-                        <label>Quản lý thông tin phản ánh, kiến nghị</label><br />
+                        <label>Cư dân</label><br />
                     </label>
                     <button type="submit" >Register</button>
                 </form>

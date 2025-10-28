@@ -5,14 +5,14 @@ use sqlx::{PgPool, Error::RowNotFound};
 
 use crate::models::user::LoginRequest;
 use crate::services::auth_services::{hash_password, verify_password, generate_jwt, verify_token, LoginResponse};
-use crate::models::user::User;
+use crate::models::user::CreateUser;
 
 #[post("/register")]
-pub async fn register_user(db: Data<PgPool>, user_info: Json<User>) -> impl Responder {
+pub async fn register_user(db: Data<PgPool>, user_info: Json<CreateUser>) -> impl Responder {
     let username = user_info.username.trim();
-    let password = user_info.password.trim();
+    let password = user_info.password_hash.trim();
     let fullname = user_info.fullname.trim();
-    let email = user_info.email.as_ref().map(|s| s.trim());
+    let email = user_info.email.trim();
     let role = &user_info.role;
 
     if username.is_empty() || password.is_empty() || fullname.is_empty() {
@@ -43,15 +43,15 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<User>) -> impl Resp
 
     let hashed_password = hash_password(password.to_string());
     let insert_result = sqlx::query(
-        "INSERT INTO users (username, fullname, email, password_hash, role, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6)"
+        "INSERT INTO users (username, fullname, email, password_hash, role, created_at, resident_id)
+        VALUES ($1, $2, $3, $4, $5, NOW(), $6)"
     )
     .bind(username)
     .bind(fullname)
     .bind(email)
     .bind(hashed_password.unwrap())
     .bind(role)
-    .bind(chrono::Utc::now().naive_utc())
+    .bind(user_info.resident_id)
     .execute(db.get_ref())
     .await;
 
@@ -71,7 +71,7 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<User>) -> impl Resp
 #[post("/login")]
 pub async fn login_user(db: Data<PgPool>, user_info: Json<LoginRequest>) -> impl Responder {
     let username = user_info.username.trim();
-    let password = user_info.password.trim();
+    let password = user_info.password_hash.trim();
 
     let get_password_result = sqlx::query_scalar::<_, String>(
         "SELECT password_hash FROM users WHERE username = $1"

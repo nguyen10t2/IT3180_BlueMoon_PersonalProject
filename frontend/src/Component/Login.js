@@ -26,7 +26,7 @@ export default function Login() {
         },
         body: JSON.stringify({
           username: username.trim(),
-          password: password.trim()
+          password_hash: password.trim()
         })
       });
 

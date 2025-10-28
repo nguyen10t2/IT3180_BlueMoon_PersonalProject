@@ -5,8 +5,8 @@ use sqlx::Type;
 #[derive(Deserialize, Serialize, Debug, Clone, Type)]
 #[sqlx(type_name = "room_type")]
 pub enum RoomType {
-    #[sqlx(rename = "Đơn")]
+    #[sqlx(rename = "Don")]
     Don,
-    #[sqlx(rename = "Đôi")]
-    Doi
+    #[sqlx(rename = "Doi")]
+    Doi,
 }
