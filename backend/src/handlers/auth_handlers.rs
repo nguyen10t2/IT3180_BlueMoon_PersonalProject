@@ -1,10 +1,10 @@
 use actix_web::{
-    post, web::{Json, Data}, HttpResponse, Responder
+    post, web::{Json, Data}, HttpResponse, Responder, HttpRequest
 };
 use sqlx::{PgPool, Error::RowNotFound};
 
 use crate::models::user::LoginRequest;
-use crate::services::auth_services::{hash_password, verify_password, generate_jwt, LoginResponse};
+use crate::services::auth_services::{hash_password, verify_password, generate_jwt, verify_token, LoginResponse};
 use crate::models::user::User;
 
 #[post("/register")]
@@ -49,7 +49,7 @@ pub async fn register_user(db: Data<PgPool>, user_info: Json<User>) -> impl Resp
     .bind(username)
     .bind(fullname)
     .bind(email)
-    .bind(&hashed_password)
+    .bind(hashed_password.unwrap())
     .bind(role)
     .bind(chrono::Utc::now().naive_utc())
     .execute(db.get_ref())
@@ -117,6 +117,41 @@ pub async fn login_user(db: Data<PgPool>, user_info: Json<LoginRequest>) -> impl
             eprintln!("Database error during login: {}", err);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Database error"
+            }))
+        }
+    }
+}
+
+#[post("/logout")]
+pub async fn logout_user(req: HttpRequest) -> impl Responder {
+    let token = req
+        .headers()
+        .get("Authorization")
+        .and_then(|header_value| header_value.to_str().ok())
+        .and_then(|header_value| header_value.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
+    match token {
+        Some(token) => {
+            let secret_key = std::env::var("SECRET_KEY")
+                .expect("SECRET_KEY must be set in .env file");
+
+            match verify_token(&token, &secret_key) {
+                Ok(claims) => {
+                    println!("User '{}' logged out successfully", claims.sub);
+                    HttpResponse::Ok().json(serde_json::json!({
+                        "message": "Logout successful"
+                    }))
+                }
+                Err(_) => {
+                    HttpResponse::Unauthorized().json(serde_json::json!({
+                        "error": "Invalid token"
+                    }))
+                }
+            }
+        }
+        None => {
+            HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Authorization token is missing"
             }))
         }
     }
