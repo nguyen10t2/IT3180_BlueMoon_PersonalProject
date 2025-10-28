@@ -130,6 +130,7 @@ pub async fn logout_user(req: HttpRequest) -> impl Responder {
         .and_then(|header_value| header_value.to_str().ok())
         .and_then(|header_value| header_value.strip_prefix("Bearer "))
         .map(|s| s.to_string());
+    // token "Authorization: Bearer <token>"
     match token {
         Some(token) => {
             let secret_key = std::env::var("SECRET_KEY")
