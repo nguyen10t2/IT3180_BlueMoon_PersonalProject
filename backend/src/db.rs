@@ -11,3 +11,10 @@ pub async fn init_db() -> DbPool {
         .await
         .expect("Không thể kết nối tới database")
 }
+
+use serde::Deserialize;
+#[derive(Debug, Deserialize)]
+pub struct PaginationQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}

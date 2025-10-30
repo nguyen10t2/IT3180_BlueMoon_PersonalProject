@@ -7,17 +7,15 @@ use sqlx::Type;
 pub enum UserRole {
     #[sqlx(rename = "admin")]
     Admin,
-    #[sqlx(rename = "user1")]
-    User1,
-    #[sqlx(rename = "user2")]
-    User2,
-    #[sqlx(rename = "user3")]
-    User3,
+    #[sqlx(rename = "manager")]
+    Manager,
+    #[sqlx(rename = "resident")]
+    Resident,
 }
 
 impl Default for UserRole {
     fn default() -> Self {
-        UserRole::User1
+        UserRole::Resident
     }
 }
 
