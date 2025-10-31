@@ -1,11 +1,14 @@
 use actix_web::{
     get, put, post, web::{Json, Data}, HttpResponse, Responder, HttpRequest
 };
-use sqlx::{PgPool, Error::RowNotFound};
+use serde_json::json;
+use sqlx::PgPool;
+use serde::Deserialize;
 
 use crate::models::user::LoginRequest;
-use crate::services::auth_services::{hash_password, verify_password, generate_jwt, verify_token, LoginResponse};
+use crate::services::auth_services::{hash_password, verify_password, generate_jwt, verify_token};
 use crate::models::user::CreateUser;
+use crate::services::auth_services::{AuthData, create_refresh_token, refresh_access_token};
 
 #[post("/register")]
 pub async fn register_user(
@@ -13,7 +16,7 @@ pub async fn register_user(
     user_info: Json<CreateUser>
 ) -> impl Responder {
     let username = user_info.username.trim();
-    let password = user_info.password_hash.trim();
+    let password = user_info.password.trim();
     let fullname = user_info.fullname.trim();
     let email = user_info.email.trim();
     let role = &user_info.role;
@@ -24,8 +27,9 @@ pub async fn register_user(
         }));
     }
 
-    let existing_user = sqlx::query_scalar::<_, bool>
-        ("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)")
+    let existing_user = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)"
+    )
         .bind(username)
         .fetch_one(db.get_ref())
         .await;
@@ -57,14 +61,14 @@ pub async fn register_user(
         "INSERT INTO users (username, fullname, email, password_hash, role, created_at, resident_id)
         VALUES ($1, $2, $3, $4, $5, NOW(), $6)"
     )
-    .bind(username)
-    .bind(fullname)
-    .bind(email)
-    .bind(hashed_password)
-    .bind(role)
-    .bind(user_info.resident_id)
-    .execute(db.get_ref())
-    .await;
+        .bind(username)
+        .bind(fullname)
+        .bind(email)
+        .bind(hashed_password)
+        .bind(role)
+        .bind(user_info.resident_id)
+        .execute(db.get_ref())
+        .await;
 
     match insert_result {
         Ok(_) => HttpResponse::Created().json(serde_json::json!({
@@ -83,56 +87,71 @@ pub async fn register_user(
 pub async fn login_user(
     db: Data<PgPool>,
     secret_key: Data<String>,
+    refresh_secret_key: Data<String>,
     user_info: Json<LoginRequest>
 ) -> impl Responder {
     let username = user_info.username.trim();
-    let password = user_info.password_hash.trim();
+    let password = user_info.password.trim();
 
-    let get_password_result = sqlx::query_scalar::<_, String>(
-        "SELECT password_hash FROM users WHERE username = $1"
+    let get_password_result = sqlx::query_as::<_, AuthData>(
+        "SELECT user_id, password_hash FROM users WHERE username = $1 AND status = 'active'"
     )
-    .bind(username)
-    .fetch_one(db.get_ref())
-    .await;
+        .bind(username)
+        .fetch_optional(db.get_ref())
+        .await;
 
     match get_password_result {
-        Ok(stored_hashed_password) => {
-
-            if verify_password(stored_hashed_password, password.to_string()).is_err() {
-                return HttpResponse::Unauthorized().json(serde_json::json!({
+        Ok(None) => {
+            HttpResponse::NotFound().json(json!({"error": "User not found"}))
+        }
+        Ok(Some(auth_data)) => {
+            if verify_password(auth_data.password_hash, password.to_string()).is_err() {
+                return HttpResponse::Unauthorized().json(json!({
                     "error": "Invalid username or password"
                 }));
             }
-
-            match generate_jwt(username.to_string(), secret_key.get_ref(), 86400) {
-                Ok(token) => {
-                    println!("User '{}' logged in successfully", username);
-                    HttpResponse::Ok().json(LoginResponse {
-                        token,
-                        message: "Login successful".to_string(),
-                    })
-                }
+            let access_token = match generate_jwt(auth_data.user_id, secret_key.get_ref(), 86400) {
+                Ok(t) => t,
                 Err(err) => {
                     eprintln!("Token generation error: {}", err);
-                    HttpResponse::InternalServerError().json(serde_json::json!({
-                        "error": "Failed to generate authentication token"
-                    }))
+                    return HttpResponse::InternalServerError().json(json!({
+                        "error": "Failed to generate access token"
+                    }));
                 }
-            }
-        }
-        Err(RowNotFound) => {
-            HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Invalid username or password"
+            };
+            let new_refresh_token = match create_refresh_token(
+                db.clone(),
+                auth_data.user_id,
+                refresh_secret_key.get_ref(),
+                7 * 86400,
+            )
+            .await
+            {
+                Ok(token) => token,
+                Err(err) => {
+                    eprintln!("Failed to create refresh token: {}", err);
+                    return HttpResponse::InternalServerError().json(json!({
+                        "error": "Failed to create refresh token"
+                    }));
+                }
+            };
+
+            println!("User '{}' logged in successfully", username);
+            HttpResponse::Ok().json(json!({
+                "access_token": access_token,
+                "refresh_token": new_refresh_token,
+                "message": "Login successful"
             }))
         }
         Err(err) => {
             eprintln!("Database error during login: {}", err);
-            HttpResponse::InternalServerError().json(serde_json::json!({
+            HttpResponse::InternalServerError().json(json!({
                 "error": "Database error"
             }))
         }
     }
 }
+
 
 #[post("/logout")]
 pub async fn logout_user(
@@ -145,7 +164,7 @@ pub async fn logout_user(
         .and_then(|header_value| header_value.to_str().ok())
         .and_then(|header_value| header_value.strip_prefix("Bearer "))
         .map(|s| s.to_string());
-    // token "Authorization: Bearer <token>"
+    
     match token {
         Some(token) => {
             match verify_token(&token, secret_key.get_ref()) {
@@ -276,4 +295,30 @@ pub async fn change_password(
             }))
         }
     }
+}
+
+#[post("/refresh")]
+pub async fn refresh_token(
+    db: Data<PgPool>,
+    refresh_secret_key: Data<String>,
+    body: Json<RefreshRequest>,
+) -> impl Responder {
+    match refresh_access_token(
+        db,
+        &body.refresh_token,
+        refresh_secret_key.get_ref(),
+        86400, // Access token mới có hạn 1 ngày
+    )
+    .await
+    {
+        Ok(resp) => HttpResponse::Ok().json(resp),
+        Err(err) => HttpResponse::Unauthorized().json(json!({
+            "error": err.to_string()
+        })),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct RefreshRequest {
+    pub refresh_token: String,
 }

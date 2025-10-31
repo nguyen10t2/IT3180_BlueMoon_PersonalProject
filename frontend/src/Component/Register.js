@@ -26,7 +26,7 @@ export default function Citizens() {
             return;
         }
         try {
-            const response = await fetch("http://127.0.0.1:8080/home/register", {
+            const response = await fetch("http://127.0.0.1:8080/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -35,7 +35,7 @@ export default function Citizens() {
                     username: userName,
                     fullname: fullname,
                     email: email,
-                    password_hash: password,
+                    password: password,
                     role: role
                 })
             });

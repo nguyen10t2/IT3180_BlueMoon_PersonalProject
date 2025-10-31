@@ -1,0 +1,11 @@
+-- Active: 1760956445253@@127.0.0.1@5432@postgres@public
+DROP TYPE IF EXISTS status;
+DROP TYPE IF EXISTS user_role;
+DROP TYPE IF EXISTS gender;
+
+DROP TYPE IF EXISTS relationship;
+
+DROP TABLE IF EXISTS residents;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS refresh_token;
+DROP TABLE IF EXISTS houses;

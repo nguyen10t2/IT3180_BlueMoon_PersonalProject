@@ -11,33 +11,38 @@ pub enum Gender {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[sqlx(type_name = "operational_status")]
+pub enum OperationalStatus {
+    #[sqlx(rename = "active")]
+    Active, 
+    #[sqlx(rename = "anactive")]
+    Inactive,
+    #[sqlx(rename = "aemporarilyaway")]
+    TemporarilyAway, 
+}
+
+impl Default for OperationalStatus {
+    fn default() -> Self {
+        OperationalStatus::Active
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "relationship")]
 pub enum RelationShip {
-    #[sqlx(rename = "ChuHo")]
-    ChuHo,
-    #[sqlx(rename = "Vo")]
-    Vo,
-    #[sqlx(rename = "Chong")]
-    Chong,
-    #[sqlx(rename = "Con")]
-    Con,
-    #[sqlx(rename = "Cha")]
-    Cha,
-    #[sqlx(rename = "Me")]
-    Me,
-    #[sqlx(rename = "Anh")]
-    Anh,
-    #[sqlx(rename = "Chi")]
-    Chi,
-    #[sqlx(rename = "Em")]
-    Em,
-    #[sqlx(rename = "Khac")]
-    Khac,
+    #[sqlx(rename = "chusohuu")]
+    ChuSoHuu, 
+    #[sqlx(rename = "nguoidaidien")]
+    NguoiDaiDien,
+    #[sqlx(rename = "thanhvien")]
+    ThanhVien,
+    #[sqlx(rename = "nguoithue")]
+    NguoiThue,
 }
 
 impl Default for RelationShip {
     fn default() -> Self {
-        RelationShip::ChuHo
+        RelationShip::ChuSoHuu
     }
 }
 

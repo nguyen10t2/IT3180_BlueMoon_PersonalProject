@@ -9,6 +9,7 @@ use crate::enums::user_enum::{UserRole, UserStatus};
 pub struct User {
     pub user_id         : i32,
     pub username        : String,
+    #[allow(dead_code)]
     #[serde(skip_serializing)]
     pub password_hash   : String,
     pub fullname        : String,
@@ -24,8 +25,7 @@ pub struct User {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUser {
     pub username        : String,
-    #[serde(skip_serializing)]
-    pub password_hash   : String,
+    pub password   : String,
     pub fullname        : String,
     pub email           : String,
     #[serde(default)]
@@ -36,5 +36,5 @@ pub struct CreateUser {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub username        : String,
-    pub password_hash   : String,
+    pub password        : String,
 }

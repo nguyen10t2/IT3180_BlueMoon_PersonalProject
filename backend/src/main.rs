@@ -9,10 +9,8 @@ mod services;
 use actix_web::{web::Data, App, HttpServer};
 use actix_cors::Cors;
 
-use routes::user_routes;
+use routes::*;
 use db::init_db;
-
-use crate::routes::auth_routes;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -30,6 +28,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(secret_key.clone()))
             .configure(user_routes::config)
             .configure(auth_routes::config)
+            .configure(resident_routes::config)
     })
     .bind(("localhost", 8080))?
     .run()

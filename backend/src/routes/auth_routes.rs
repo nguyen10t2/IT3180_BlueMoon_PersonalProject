@@ -6,7 +6,7 @@ use crate::handlers::auth_handlers::{
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("home")
+        web::scope("auth")
             .service(register_user)
             .service(login_user)
             .service(logout_user)

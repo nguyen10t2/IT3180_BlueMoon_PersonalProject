@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::enums::resident_enum::{RelationShip, Gender, ResidencyStatus};
+use crate::enums::resident_enum::{OperationalStatus, Gender, ResidencyStatus};
 
 #[derive(Deserialize, Serialize, Debug, FromRow)]
 pub struct Resident {
@@ -12,9 +12,8 @@ pub struct Resident {
     pub birth               : NaiveDate,
     pub gender              : Gender,
     #[serde(default)]
-    pub relationship        : RelationShip,
+    pub relationship        : OperationalStatus,
     pub phone_number        : Option<String>,
-    pub occupation          : Option<String>,
     #[serde(default)]
     pub residency_status    : ResidencyStatus,
     pub created_at          : NaiveDateTime,

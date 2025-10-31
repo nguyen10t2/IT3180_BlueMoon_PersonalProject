@@ -7,7 +7,7 @@ use sqlx::PgPool;
 use crate::models::user::User;
 use serde_json::json;
 
-#[get("/users")]
+#[get("/")]
 pub async fn get_all_users(db: Data<PgPool>) -> impl Responder {
     let result = sqlx::query_as::<_, User>(
         "SELECT * FROM users WHERE status = 'active'"
@@ -21,7 +21,7 @@ pub async fn get_all_users(db: Data<PgPool>) -> impl Responder {
 }
 
 
-#[get("/user/{id}")]
+#[get("/{id}")]
 pub async fn get_user_by_id(db: Data<PgPool>, path: Path<i32>) -> impl Responder {
     let user_id = path.into_inner();
 

@@ -1,23 +1,32 @@
-CREATE TYPE relationship AS ENUM (
-    'ChuHo', 'Vo', 'Chong', 'Con', 'Cha', 'Me',
-    'Ong', 'Ba', 'Anh', 'Chi', 'Em', 'Khac'
+-- CÁC LOẠI DỮ LIỆU ENUM (Đã giữ nguyên, Tốt)
+CREATE TYPE operational_status AS ENUM (
+    'active', 'inactive', 'temporarily_away'
 );
-CREATE TYPE resident_status AS ENUM (
-    'ThuongTru', 'TamTru', 'TamVang'
+
+CREATE TYPE relationship AS ENUM (
+    'chusohuu', 'nguoidaidien', 'thanhvien', 'nguoithue'
 );
 CREATE TYPE gender AS ENUM ('male', 'female', 'other');
 CREATE TYPE user_role AS ENUM ('admin', 'manager', 'resident');
-CREATE TYPE user_status AS ENUM ('active', 'inactive');
+CREATE TYPE status AS ENUM ('active', 'inactive');
+
+CREATE TABLE houses (
+    house_id SERIAL PRIMARY KEY,
+    house_number VARCHAR(20) UNIQUE NOT NULL, 
+    floor INT, 
+    area NUMERIC(8, 2), 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE residents (
     resident_id SERIAL PRIMARY KEY,
-    house_id INTEGER NOT NULL,
+    house_id INT REFERENCES houses(house_id),
     fullname VARCHAR(100) NOT NULL,
     birth DATE,
     gender gender DEFAULT 'other',
-    relationship relationship DEFAULT 'ChuHo',
     phone_number VARCHAR(15),
-    occupation VARCHAR(15),
-    resident_status resident_status DEFAULT 'ThuongTru',
+    relationship relationship DEFAULT 'chusohuu',
+    residency_status operational_status DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,7 +37,16 @@ CREATE TABLE users (
     fullname VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     role user_role DEFAULT 'resident',
-    status user_status DEFAULT 'active',
+    status status DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     resident_id INT REFERENCES residents(resident_id)
+);
+
+CREATE TABLE refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    token TEXT UNIQUE NOT NULL,
+    user_id INT REFERENCES users(user_id) NOT NULL, 
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
